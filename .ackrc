@@ -1,0 +1,13 @@
+# ack is a tool like grep, designed for programmers with large trees of heterogeneous source code
+
+# to install ack, see http://betterthangrep.com/
+# to use ack, launch terminal (mac osx) and type 'ack <some_keywords>'
+# ack will search all files in the current directory & sub-directories
+
+--context=1
+
+# Always sort the files
+--sort-files
+
+# Ignore directories where is nothing relevant to search
+--ignore-dir=locale
