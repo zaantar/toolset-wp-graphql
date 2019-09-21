@@ -14,4 +14,7 @@ if ( PHP_VERSION_ID < 70100 ) {
 	wp_die( 'This plugin requires PHP 7.1 or higher.' );
 }
 
-require_once __DIR__ . '/main.php';
+require_once __DIR__ . '/vendor/autoload.php';
+
+$controller = new \OTGS\Toolset\WpGraphQl\Main();
+$controller->initialize();

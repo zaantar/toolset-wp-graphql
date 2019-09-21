@@ -1,0 +1,27 @@
+{
+  "name": "otgs/toolset-wp-graphql",
+  "description": "Exposes Toolset custom post types, taxonomies and fields via WPGraphQL.",
+  "type": "project",
+  "license": "GPLv3",
+  "authors": [
+    {
+      "name": "jan",
+      "email": "jan.s@onthegosystems.com"
+    }
+  ],
+  "config": {
+    "vendor-dir": "vendor/",
+    "platform": {
+      "php": "7.1"
+    }
+  },
+  "autoload": {
+    "classmap": [
+      "application/"
+    ]
+  },
+  "require": {},
+  "require-dev": {
+    "roave/security-advisories": "dev-master"
+  }
+}
