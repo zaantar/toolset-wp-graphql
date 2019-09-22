@@ -23,7 +23,7 @@ class Main {
 
 	public function __construct() {
 		$this->naming = new GraphQlNamingService();
-		$this->typeRepository = new TypeRepository( $this->naming );
+		$this->typeRepository = new TypeRepository( $this->naming, new FieldStructureProvider() );
 	}
 
 	public function initialize() {
@@ -101,15 +101,21 @@ class Main {
 		foreach( $fieldDefinitions as $fieldDefinition ) {
 			$fieldGraphqlName = $this->naming->makeGraphqlName( $fieldDefinition->get_name(), CONTEXT_FIELD_NAME );
 			$this->addToMap( $fieldDefinition->get_slug(), $fieldGraphqlName, CONTEXT_FIELD_NAME );
+			$fieldTypeGraphqlName = $this->typeRepository->obtainTypeForToolsetField( $fieldDefinition->get_type(), $fieldDefinition->is_repeatable() );
+
+			$singleFieldStructure = $this->typeRepository->getFieldStructure(
+				$this->typeRepository->obtainTypeForToolsetField( $fieldDefinition->get_type(), false )
+			);
+
 			register_graphql_field(
 				$postTypeGraphqlName,
 				$fieldGraphqlName,
 				[
-					'type' => $this->typeRepository->obtainTypeForToolsetField( $fieldDefinition->get_type(), $fieldDefinition->is_repeatable() ),
+					'type' => $fieldTypeGraphqlName,
 					'description' => __( 'Toolset field', 'toolset-wp-graphql' ) . ': ' . $fieldDefinition->get_slug(),
-					'resolve' => function( $post ) use( $fieldDefinition ) {
-						$value = $fieldDefinition->instantiate( $post->ID )->render( \OTGS\Toolset\Common\PublicAPI\CustomFieldRenderPurpose\REST );
-						return [ 'restValue' => json_encode( $value ), 'repeatedValueTest' => [ 'a', 'b' ] ];
+					'resolve' => function( $post ) use( $fieldDefinition, $singleFieldStructure ) {
+						$fieldTranslation = new \FieldTranslation( $singleFieldStructure );
+						return $fieldTranslation->translate( $fieldDefinition->instantiate( $post->ID ) );
 					}
 				]
 			);

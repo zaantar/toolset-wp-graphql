@@ -11,43 +11,45 @@ class TypeRepository {
 
 	private $definedFieldTypes = [];
 
-	public function __construct( GraphQlNamingService $naming ) {
+	private $fieldStructureProvider;
+
+	public function __construct( GraphQlNamingService $naming, FieldStructureProvider $fieldStructureProvider ) {
 		$this->naming = $naming;
+		$this->fieldStructureProvider = $fieldStructureProvider;
 	}
 
 
 	public function obtainTypeForToolsetField( CustomFieldTypeDefinition $typeDefinition, $isRepeatable ) {
 		$graphqlTypeName = $this->toolsetFieldTypeToGraphQlName( $typeDefinition, $isRepeatable );
 
-		if ( ! in_array( $graphqlTypeName, $this->definedFieldTypes, true ) ) {
+		if ( ! array_key_exists( $graphqlTypeName, $this->definedFieldTypes ) ) {
 			if( $isRepeatable ) {
 				$singleTypeName = $this->obtainTypeForToolsetField( $typeDefinition, false );
-				$this->registerFieldType(
-					$graphqlTypeName,
-					$typeDefinition->get_slug(),
-					[
-						'raw' => [
-							'type' => 'String',
-							'description' => 'JSON-encoded raw field data.',
-						],
-						'repeatable' => [
-							'type' => [ 'list_of' => $singleTypeName ],
-							'description' => 'An array of single field values.'
-						]
+				$fieldStructure = [
+					'raw' => [
+						'type' => [ 'list_of' => 'String' ],
+						'description' => 'Raw field data.',
+					],
+					'repeatable' => [
+						'type' => [ 'list_of' => $singleTypeName ],
+						'description' => 'An array of single field values.'
 					]
-				);
+				];
+				$this->registerFieldType( $graphqlTypeName, $typeDefinition->get_slug(), $fieldStructure );
 			} else {
-				$this->registerFieldType(
-					$graphqlTypeName,
-					$typeDefinition->get_slug(),
-					$this->getTypeDefinitionForSingularField( $typeDefinition )
-				);
+				$fieldStructure = $this->fieldStructureProvider->getStructureForFieldType( $typeDefinition->get_slug() );
+				$this->registerFieldType( $graphqlTypeName, $typeDefinition->get_slug(), $fieldStructure );
 			}
 
-			$this->definedFieldTypes[] = $graphqlTypeName;
+			$this->definedFieldTypes[ $graphqlTypeName ] = $fieldStructure;
 		}
 
 		return $graphqlTypeName;
+	}
+
+
+	public function getFieldStructure( $graphqlTypeName ) {
+		return $this->definedFieldTypes[ $graphqlTypeName ] ?? null;
 	}
 
 
@@ -57,20 +59,6 @@ class TypeRepository {
 			$this->naming->makeGraphqlName( $typeDefinition->get_display_name(), CONTEXT_FIELD_TYPE_NAME ),
 			$isRepeatable ? 'Repeatable' : ''
 		);
-	}
-
-
-	private function getTypeDefinitionForSingularField( CustomFieldTypeDefinition $typeDefinition ) {
-		return [
-			'restValue' => [
-				'type' => 'String',
-				'description' => __( 'JSON-encoded string as exposed in the REST API.', 'toolset-wp-graphql' )
-			],
-			'repeatedValueTest' => [
-				'type' => [ 'list_of' => 'String' ],
-				'description' => 'aaa'
-			]
-		];
 	}
 
 
