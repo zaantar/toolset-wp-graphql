@@ -15,9 +15,16 @@ class Main {
 
 	private $nameMap = [];
 
+	/** @var GraphQlNamingService */
+	private $naming;
 
-	private $fieldTypeMap = [];
+	/** @var TypeRepository */
+	private $typeRepository;
 
+	public function __construct() {
+		$this->naming = new GraphQlNamingService();
+		$this->typeRepository = new TypeRepository( $this->naming );
+	}
 
 	public function initialize() {
 
@@ -92,13 +99,13 @@ class Main {
 		}, [] );
 
 		foreach( $fieldDefinitions as $fieldDefinition ) {
-			$fieldGraphqlName = $this->makeGraphqlName( $fieldDefinition->get_name(), CONTEXT_FIELD_NAME );
+			$fieldGraphqlName = $this->naming->makeGraphqlName( $fieldDefinition->get_name(), CONTEXT_FIELD_NAME );
 			$this->addToMap( $fieldDefinition->get_slug(), $fieldGraphqlName, CONTEXT_FIELD_NAME );
 			register_graphql_field(
 				$postTypeGraphqlName,
 				$fieldGraphqlName,
 				[
-					'type' => $this->getTypeForField( $fieldDefinition ),
+					'type' => $this->typeRepository->obtainTypeForToolsetField( $fieldDefinition->get_type(), $fieldDefinition->is_repeatable() ),
 					'description' => __( 'Toolset field', 'toolset-wp-graphql' ) . ': ' . $fieldDefinition->get_slug(),
 					'resolve' => function( $post ) use( $fieldDefinition ) {
 						$value = $fieldDefinition->instantiate( $post->ID )->render( \OTGS\Toolset\Common\PublicAPI\CustomFieldRenderPurpose\REST );
@@ -110,42 +117,6 @@ class Main {
 	}
 
 
-	private function getTypeForField( CustomFieldDefinition $fieldDefinition ) {
-		$typeSlug = $fieldDefinition->get_type_slug();
-		$isRepeatableKey = ( $fieldDefinition->is_repeatable() ? 'repeatable' : 'single-value' );
-		if( ! array_key_exists( $typeSlug, $this->fieldTypeMap ) ) {
-			$this->fieldTypeMap[ $typeSlug ] = [];
-		}
-
-		if ( ! array_key_exists( $isRepeatableKey, $this->fieldTypeMap[ $typeSlug ] ) ) {
-			$graphqlTypeName = sprintf(
-				'ToolsetField%s%s',
-				$this->makeGraphqlName( $fieldDefinition->get_type()->get_display_name(), CONTEXT_FIELD_TYPE_NAME ),
-				$fieldDefinition->is_repeatable() ? 'Repeatable' : ''
-			);
-
-			register_graphql_object_type(
-				$graphqlTypeName,
-				[
-					'description' => __( 'Toolset field type', 'toolset-wp-graphql' ) . ': ' . $typeSlug,
-					'fields' => [
-						'restValue' => [
-							'type' => 'String',
-							'description' => __( 'JSON-encoded string as exposed in the REST API.', 'toolset-wp-graphql' )
-						],
-						'repeatedValueTest' => [
-							'type' => [ 'list_of' => 'String' ],
-							'description' => 'aaa'
-						]
-					]
-				]
-			);
-
-			$this->fieldTypeMap[ $typeSlug ][ $isRepeatableKey ] = $graphqlTypeName;
-		}
-
-		return $this->fieldTypeMap[ $typeSlug ][ $isRepeatableKey ];
-	}
 
 
 	private function addToMap( $originalSlug, $graphqlName, $context ) {
@@ -158,7 +129,7 @@ class Main {
 
 
 	private function augmentDefinition( $definition, $originalSlug, $context ) {
-		$singleName = $this->makeGraphqlName(
+		$singleName = $this->naming->makeGraphqlName(
 			$definition['labels']['singular_name'] ?? $originalSlug, $context
 		);
 
@@ -169,51 +140,10 @@ class Main {
 			[
 				'show_in_graphql' => true,
 				'graphql_single_name' => $singleName,
-				'graphql_plural_name' => $this->makeGraphqlName(
+				'graphql_plural_name' => $this->naming->makeGraphqlName(
 					$definition['labels']['name'] ?? $originalSlug, $context
 				),
 			]
 		);
 	}
-
-	/**
-	 * WPGraphQL requires "camel case string with no punctuation or spaces".
-	 *
-	 * @param string $original_name
-	 * @param string $context Context for the toolset_wpgraphql_name filter.
-	 *
-	 * @return string
-	 */
-	private function makeGraphqlName( $original_name, $context ) {
-		// Get rid of non-ascii characters in the best way we can.
-		$no_accents = remove_accents( $original_name ); // THANK YOU, WORDPRESS
-		$ascii = iconv( 'UTF-8', 'ASCII//TRANSLIT', $no_accents );
-
-		// Get rid of everything that's not a letter or a whitespace.
-		$only_letters = preg_replace('/[^a-zA-Z\s]/u', ' ', $ascii );
-
-		$all_lowercase = strtolower( $only_letters );
-
-		$split_by_words = array_filter(
-			explode( ' ', $all_lowercase ),
-			static function( $word ) { return ! empty( $word ); }
-		);
-
-		// Make first letters uppercase, except the first word
-		$first_word = array_shift( $split_by_words );
-		$uppercase = array_map( static function( $word ) {
-			return ucfirst( $word );
-		}, $split_by_words );
-
-		// Glue everything into a CamelCase
-		$candidate = $first_word . implode( $uppercase );
-
-		// Allow to override the result in case it doesn't really work for the user.
-		$result = apply_filters( 'toolset_wpgraphql_name', $candidate, $original_name, $context );
-		if( ! is_string( $result ) ) {
-			throw new \InvalidArgumentException( 'Wrong result of the toolset_wpgraphql_name filter.' );
-		}
-		return $result;
-	}
-
 }
