@@ -102,7 +102,7 @@ class Main {
 					'description' => __( 'Toolset field', 'toolset-wp-graphql' ) . ': ' . $fieldDefinition->get_slug(),
 					'resolve' => function( $post ) use( $fieldDefinition ) {
 						$value = $fieldDefinition->instantiate( $post->ID )->render( \OTGS\Toolset\Common\PublicAPI\CustomFieldRenderPurpose\REST );
-						return [ 'restValue' => json_encode( $value ) ];
+						return [ 'restValue' => json_encode( $value ), 'repeatedValueTest' => [ 'a', 'b' ] ];
 					}
 				]
 			);
@@ -132,6 +132,10 @@ class Main {
 						'restValue' => [
 							'type' => 'String',
 							'description' => __( 'JSON-encoded string as exposed in the REST API.', 'toolset-wp-graphql' )
+						],
+						'repeatedValueTest' => [
+							'type' => [ 'list_of' => 'String' ],
+							'description' => 'aaa'
 						]
 					]
 				]
