@@ -4,6 +4,22 @@ namespace OTGS\Toolset\WpGraphQl;
 
 class GraphQlNamingService {
 
+	const CONTEXT_POST_TYPE = 'post_type';
+	const CONTEXT_TAXONOMY = 'taxonomy';
+	const CONTEXT_FIELD_NAME = 'custom_field';
+	const CONTEXT_FIELD_TYPE_NAME = 'custom_field_type';
+
+	private $nameMap = [];
+
+	public function addToMap( $originalSlug, $graphqlName, $context ) {
+		if( ! array_key_exists( $context, $this->nameMap ) ) {
+			$this->nameMap[ $context ] = [];
+		}
+
+		$this->nameMap[ $context ][ $originalSlug ] = $graphqlName;
+	}
+
+
 	/**
 	 * WPGraphQL requires "camel case string with no punctuation or spaces".
 	 *

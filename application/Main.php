@@ -6,14 +6,8 @@ namespace OTGS\Toolset\WpGraphQl;
 use OTGS\Toolset\Common\PublicAPI\CustomFieldDefinition;
 use OTGS\Toolset\Common\PublicAPI\CustomFieldGroup;
 
-const CONTEXT_POST_TYPE = 'post_type';
-const CONTEXT_TAXONOMY = 'taxonomy';
-const CONTEXT_FIELD_NAME = 'custom_field';
-const CONTEXT_FIELD_TYPE_NAME = 'custom_field_type';
 
 class Main {
-
-	private $nameMap = [];
 
 	/** @var GraphQlNamingService */
 	private $naming;
@@ -41,10 +35,10 @@ class Main {
 
 		add_filter( 'wpcf_type', function( $post_type_definition, $post_type_slug ) {
 			$showInRest = (bool) $post_type_definition['show_in_rest'] ?? false;
-			$showInGraphql = (bool) apply_filters( 'toolset_wpgraphql_show', $showInRest, $post_type_slug, CONTEXT_POST_TYPE );
+			$showInGraphql = (bool) apply_filters( 'toolset_wpgraphql_show', $showInRest, $post_type_slug, GraphQlNamingService::CONTEXT_POST_TYPE );
 
 			if( $showInGraphql ) {
-				return $this->augmentDefinition( $post_type_definition, $post_type_slug, CONTEXT_POST_TYPE );
+				return $this->augmentDefinition( $post_type_definition, $post_type_slug, GraphQlNamingService::CONTEXT_POST_TYPE );
 			}
 
 			return $post_type_definition;
@@ -53,10 +47,10 @@ class Main {
 
 		add_filter( 'wpcf_taxonomy_data', function( $taxonomy_definition, $taxonomy_slug ) {
 			$show_in_rest = (bool) $taxonomy_definition['show_in_rest'] ?? false;
-			$show_in_graphql = (bool) apply_filters( 'toolset_wpgraphql_show', $show_in_rest, $taxonomy_slug, CONTEXT_TAXONOMY );
+			$show_in_graphql = (bool) apply_filters( 'toolset_wpgraphql_show', $show_in_rest, $taxonomy_slug, GraphQlNamingService::CONTEXT_TAXONOMY );
 
 			if( $show_in_graphql ) {
-				return $this->augmentDefinition( $taxonomy_definition, $taxonomy_slug, CONTEXT_TAXONOMY );
+				return $this->augmentDefinition( $taxonomy_definition, $taxonomy_slug, GraphQlNamingService::CONTEXT_TAXONOMY );
 			}
 
 			return $taxonomy_definition;
@@ -70,9 +64,6 @@ class Main {
 
 
 	private function registerCustomFields() {
-		if( ! array_key_exists( CONTEXT_POST_TYPE, $this->nameMap ) ) {
-			return;
-		}
 		$post_types = \WPGraphQL::get_allowed_post_types();
 		foreach( $post_types as $postTypeSlug ) {
 			$postTypeObject = get_post_type_object( $postTypeSlug );
@@ -99,8 +90,8 @@ class Main {
 		}, [] );
 
 		foreach( $fieldDefinitions as $fieldDefinition ) {
-			$fieldGraphqlName = $this->naming->makeGraphqlName( $fieldDefinition->get_name(), CONTEXT_FIELD_NAME );
-			$this->addToMap( $fieldDefinition->get_slug(), $fieldGraphqlName, CONTEXT_FIELD_NAME );
+			$fieldGraphqlName = $this->naming->makeGraphqlName( $fieldDefinition->get_name(), GraphQlNamingService::CONTEXT_FIELD_NAME );
+			$this->naming->addToMap( $fieldDefinition->get_slug(), $fieldGraphqlName, GraphQlNamingService::CONTEXT_FIELD_NAME );
 			$fieldTypeGraphqlName = $this->typeRepository->obtainTypeForToolsetField( $fieldDefinition->get_type(), $fieldDefinition->is_repeatable() );
 
 			$singleFieldStructure = $this->typeRepository->getFieldStructure(
@@ -123,23 +114,12 @@ class Main {
 	}
 
 
-
-
-	private function addToMap( $originalSlug, $graphqlName, $context ) {
-		if( ! array_key_exists( $context, $this->nameMap ) ) {
-			$this->nameMap[ $context ] = [];
-		}
-
-		$this->nameMap[ $context ][ $originalSlug ] = $graphqlName;
-	}
-
-
 	private function augmentDefinition( $definition, $originalSlug, $context ) {
 		$singleName = $this->naming->makeGraphqlName(
 			$definition['labels']['singular_name'] ?? $originalSlug, $context
 		);
 
-		$this->addToMap( $originalSlug, $singleName, $context );
+		$this->naming->addToMap( $originalSlug, $singleName, $context );
 
 		return array_merge(
 			$definition,

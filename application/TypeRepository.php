@@ -56,7 +56,7 @@ class TypeRepository {
 	private function toolsetFieldTypeToGraphQlName( CustomFieldTypeDefinition $typeDefinition, $isRepeatable ) {
 		return sprintf(
 			'ToolsetField%s%s',
-			$this->naming->makeGraphqlName( $typeDefinition->get_display_name(), CONTEXT_FIELD_TYPE_NAME ),
+			$this->naming->makeGraphqlName( $typeDefinition->get_display_name(), GraphQlNamingService::CONTEXT_FIELD_TYPE_NAME ),
 			$isRepeatable ? 'Repeatable' : ''
 		);
 	}
