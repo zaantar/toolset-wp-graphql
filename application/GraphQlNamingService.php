@@ -2,15 +2,32 @@
 
 namespace OTGS\Toolset\WpGraphQl;
 
+/**
+ * Handles translation between WordPress and GraphQL names.
+ *
+ * TODO this should also eventually make sure these names are unique.
+ */
 class GraphQlNamingService {
 
+	// Used to determine context in which the naming operation occurs.
 	const CONTEXT_POST_TYPE = 'post_type';
 	const CONTEXT_TAXONOMY = 'taxonomy';
 	const CONTEXT_FIELD_NAME = 'custom_field';
 	const CONTEXT_FIELD_TYPE_NAME = 'custom_field_type';
 
+	/**
+	 * @var string[][] Generated GraphQL names indexed by context and WordPress name.
+	 */
 	private $nameMap = [];
 
+
+	/**
+	 * Add a new name to the name map.
+	 *
+	 * @param string $originalSlug
+	 * @param string $graphqlName
+	 * @param string $context
+	 */
 	public function addToMap( $originalSlug, $graphqlName, $context ) {
 		if( ! array_key_exists( $context, $this->nameMap ) ) {
 			$this->nameMap[ $context ] = [];
@@ -59,6 +76,5 @@ class GraphQlNamingService {
 		}
 		return $result;
 	}
-
 
 }

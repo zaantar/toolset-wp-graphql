@@ -10,6 +10,8 @@
  * Version: 0.1.0
  */
 
+// CAREFUL: THIS FILE NEEDS TO BE COMPATIBLE WITH PHP 5.3+
+
 if ( PHP_VERSION_ID < 70100 ) {
 	wp_die( 'This plugin requires PHP 7.1 or higher.' );
 }

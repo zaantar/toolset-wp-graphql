@@ -2,10 +2,25 @@
 
 namespace OTGS\Toolset\WpGraphQl;
 
-use OTGS\Toolset\Common\PublicAPI\CustomFieldInstance;
-
+/**
+ * Translates a Toolset field type slug into a field strucure array for WpGraphQL.
+ *
+ * Note that this is built on the current REST API implementation in Toolset and
+ * should be fortified (probably by making Toolset itself handle the field rendering in the
+ * required format). Currently, this whole plugin contains a lot of assumptions about the
+ * data coming from Toolset.
+ *
+ * TODO get rid of hard dependencies on the Toolset codebase.
+ */
 class FieldStructureProvider {
 
+	/**
+	 * For a given field type slug, retrieve the array of GraphQL fields
+	 * for a *singular* field.
+	 *
+	 * @param string $fieldTypeSlug
+	 * @return array
+	 */
 	public function getStructureForFieldType( $fieldTypeSlug ) {
 		$fieldStructure = [
 			'raw' => [
@@ -44,22 +59,12 @@ class FieldStructureProvider {
 				break;
 		}
 
+		/**
+		 * toolset_wpgraphql_field_structure_per_type
+		 *
+		 * Allow altering a WPGraphQL field structure for a given Toolset field type.
+		 * This can be used for some troubleshooting in case of backward compatibility breakage.
+		 */
 		return apply_filters( 'toolset_wpgraphql_field_structure_per_type', $fieldStructure, $fieldTypeSlug );
 	}
-
-
-	/*public function xxgetStructureForFieldType( $fieldTypeSlug, $isRepeatable ) {
-		$fieldTypeStructure = $this->getBaseStructureForFieldType( $fieldTypeSlug );
-
-		if( ! $isRepeatable ) {
-			return $fieldTypeStructure;
-		}
-
-		$fieldTypeStructure['raw']['type'] = [ 'list_of' => 'String' ];
-
-		$additionalKeys = array_filter( array_keys( $fieldTypeStructure ), static function( $key ) { return $key !== 'raw' } );
-		if( ! empty( $additionalKeys ) ) {
-			$fieldTypeStructure['repeatable'] =
-		}
-	}*/
 }
